@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 
 PLUGIN_FILE = Path(__file__).resolve().parents[1] / "__init__.py"
-SPEC = importlib.util.spec_from_file_location("grammarly_plugin_under_test", PLUGIN_FILE)
+SPEC = importlib.util.spec_from_file_location("proofread_draft_plugin_under_test", PLUGIN_FILE)
 PLUGIN = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PLUGIN)
 
@@ -22,8 +22,8 @@ class PluginTests(unittest.TestCase):
         PLUGIN.register(ctx)
 
         ctx.register_auxiliary_task.assert_called_once_with(
-            "grammarly_proofread",
-            display_name="Grammarly proofreading",
+            "proofread_draft",
+            display_name="Proofread Draft",
             description="Proofread spelling, grammar, and punctuation in a draft.",
         )
         self.assertTrue(callable(PLUGIN._get_llm))
@@ -37,7 +37,7 @@ class PluginTests(unittest.TestCase):
 
         self.assertEqual(result, "Korrigierter Text.")
         kwargs = ctx.llm.complete_structured.call_args.kwargs
-        self.assertEqual(kwargs["task"], "grammarly_proofread")
+        self.assertEqual(kwargs["task"], "proofread_draft")
         self.assertEqual(kwargs["input"], [{"type": "text", "text": "Korigierter Text."}])
         self.assertEqual(kwargs["temperature"], 0.0)
 
@@ -53,14 +53,14 @@ class PluginTests(unittest.TestCase):
         PLUGIN.register(ctx)
 
         api_file = PLUGIN_FILE.parent / "dashboard" / "plugin_api.py"
-        api_spec = importlib.util.spec_from_file_location("grammarly_api_under_test", api_file)
+        api_spec = importlib.util.spec_from_file_location("proofread_draft_api_under_test", api_file)
         api = importlib.util.module_from_spec(api_spec)
         api_spec.loader.exec_module(api)
-        sys.modules["hermes_plugins.grammarly"] = PLUGIN
+        sys.modules["hermes_plugins.proofread_draft"] = PLUGIN
         try:
             response = api.proofread(api.ProofreadRequest(text="Draft"))
         finally:
-            sys.modules.pop("hermes_plugins.grammarly", None)
+            sys.modules.pop("hermes_plugins.proofread_draft", None)
 
         self.assertEqual(response, {"text": "Korrigierter Text."})
 

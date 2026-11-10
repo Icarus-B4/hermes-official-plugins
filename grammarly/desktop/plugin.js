@@ -7,7 +7,7 @@ const TEXT = navigator.language?.toLowerCase().startsWith('de')
   ? {
       emptyDraft: 'Das Eingabefeld ist leer.',
       tooLong: limit => `Bitte auf höchstens ${limit} Zeichen kürzen.`,
-      checking: 'Grammarly prüft den Entwurf …',
+      checking: 'Prüfe den Entwurf …',
       checkingNotice: 'Prüfe Rechtschreibung und Grammatik …',
       missingCorrection: 'Der Dienst hat keinen Korrekturvorschlag zurückgegeben.',
       changedDuringCheck: 'Der Entwurf wurde während der Prüfung geändert. Bitte erneut prüfen.',
@@ -20,12 +20,13 @@ const TEXT = navigator.language?.toLowerCase().startsWith('de')
       unavailableDraft: 'Das Eingabefeld ist nicht mehr verfügbar. Der Vorschlag wurde nicht übernommen.',
       unavailableDraftNotice: 'Eingabefeld nicht verfügbar; Vorschlag nicht übernommen.',
       applied: 'Korrektur übernommen.',
-      checkingTitle: 'Grammarly prüft den Entwurf …',
-      actionTitle: 'Grammarly: Rechtschreibung und Grammatik prüfen',
-      checkingLabel: 'Grammarly prüft den Entwurf',
-      actionLabel: 'Grammarly: Rechtschreibung und Grammatik prüfen',
+      checkingTitle: 'Prüfe Rechtschreibung und Grammatik …',
+      actionTitle: 'Rechtschreibung und Grammatik prüfen',
+      checkingLabel: 'Prüfe Rechtschreibung und Grammatik',
+      actionLabel: 'Rechtschreibung und Grammatik prüfen',
       action: 'Korrektur prüfen',
-      proposal: 'Grammarly-Korrekturvorschlag',
+      proposal: 'Korrekturvorschlag',
+      applyFailed: detail => `Übernahme fehlgeschlagen: ${detail}`,
       review: 'Vorschlag prüfen — der Entwurf wird nicht automatisch geändert.',
       showOriginal: 'Original anzeigen',
       discard: 'Verwerfen',
@@ -34,7 +35,7 @@ const TEXT = navigator.language?.toLowerCase().startsWith('de')
   : {
       emptyDraft: 'The draft is empty.',
       tooLong: limit => `Please shorten the draft to ${limit} characters or fewer.`,
-      checking: 'Grammarly is checking the draft …',
+      checking: 'Checking the draft …',
       checkingNotice: 'Checking spelling and grammar …',
       missingCorrection: 'The service did not return a correction.',
       changedDuringCheck: 'The draft changed while it was being checked. Please try again.',
@@ -47,12 +48,13 @@ const TEXT = navigator.language?.toLowerCase().startsWith('de')
       unavailableDraft: 'The composer is no longer available. The suggestion was not applied.',
       unavailableDraftNotice: 'Composer unavailable; suggestion not applied.',
       applied: 'Correction applied.',
-      checkingTitle: 'Grammarly is checking the draft …',
-      actionTitle: 'Grammarly: Check spelling and grammar',
-      checkingLabel: 'Grammarly is checking the draft',
-      actionLabel: 'Grammarly: Check spelling and grammar',
+      checkingTitle: 'Checking spelling and grammar …',
+      actionTitle: 'Check spelling and grammar',
+      checkingLabel: 'Checking spelling and grammar',
+      actionLabel: 'Check spelling and grammar',
       action: 'Proofread draft',
-      proposal: 'Grammarly proofreading suggestion',
+      proposal: 'Proofreading suggestion',
+      applyFailed: detail => `Could not apply correction: ${detail}`,
       review: 'Review the suggestion — your draft will not change automatically.',
       showOriginal: 'Show original',
       discard: 'Discard',
@@ -85,18 +87,18 @@ function ProofreadAction({ request }) {
       const original = await host.composer.getDraft(sessionId)
       if (typeof original !== 'string' || !original.trim()) {
         setMessage(TEXT.emptyDraft)
-        host.notify({ kind: 'info', title: 'Grammarly', message: TEXT.emptyDraft })
+        host.notify({ kind: 'info', title: 'Proofread Draft', message: TEXT.emptyDraft })
         return
       }
       if (original.length > MAX_INPUT_CHARS) {
         const detail = TEXT.tooLong(MAX_INPUT_CHARS)
         setMessage(detail)
-        host.notify({ kind: 'warning', title: 'Grammarly', message: detail })
+        host.notify({ kind: 'warning', title: 'Proofread Draft', message: detail })
         return
       }
 
       setMessage(TEXT.checking)
-      host.notify({ kind: 'info', title: 'Grammarly', message: TEXT.checkingNotice })
+      host.notify({ kind: 'info', title: 'Proofread Draft', message: TEXT.checkingNotice })
       const result = await request('/proofread', {
         method: 'POST',
         body: { text: original },
@@ -110,12 +112,12 @@ function ProofreadAction({ request }) {
       if (current !== original) {
         const detail = TEXT.changedDuringCheck
         setMessage(detail)
-        host.notify({ kind: 'warning', title: 'Grammarly', message: detail })
+        host.notify({ kind: 'warning', title: 'Proofread Draft', message: detail })
         return
       }
       if (result.text === original) {
         setMessage(TEXT.noCorrections)
-        host.notify({ kind: 'info', title: 'Grammarly', message: TEXT.noCorrections })
+        host.notify({ kind: 'info', title: 'Proofread Draft', message: TEXT.noCorrections })
         return
       }
 
@@ -123,7 +125,7 @@ function ProofreadAction({ request }) {
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       setMessage(TEXT.failed(detail))
-      host.notify({ kind: 'error', title: 'Grammarly', message: detail })
+      host.notify({ kind: 'error', title: 'Proofread Draft', message: detail })
     } finally {
       setBusy(false)
     }
@@ -136,7 +138,7 @@ function ProofreadAction({ request }) {
       const currentSessionId = host.state.focusedSessionId.get() || 'new'
       if (currentSessionId !== proposal.sessionId) {
         setMessage(TEXT.sessionChanged)
-        host.notify({ kind: 'warning', title: 'Grammarly', message: TEXT.sessionChangedNotice })
+        host.notify({ kind: 'warning', title: 'Proofread Draft', message: TEXT.sessionChangedNotice })
         return
       }
 
@@ -144,23 +146,23 @@ function ProofreadAction({ request }) {
       if (current !== proposal.original) {
         setProposal(null)
         setMessage(TEXT.staleDraft)
-        host.notify({ kind: 'warning', title: 'Grammarly', message: TEXT.staleDraftNotice })
+        host.notify({ kind: 'warning', title: 'Proofread Draft', message: TEXT.staleDraftNotice })
         return
       }
 
       const applied = await host.composer.setDraft(proposal.sessionId, proposal.corrected)
       if (!applied) {
         setMessage(TEXT.unavailableDraft)
-        host.notify({ kind: 'error', title: 'Grammarly', message: TEXT.unavailableDraftNotice })
+        host.notify({ kind: 'error', title: 'Proofread Draft', message: TEXT.unavailableDraftNotice })
         return
       }
       setProposal(null)
       setMessage(TEXT.applied)
-      host.notify({ kind: 'success', title: 'Grammarly', message: TEXT.applied })
+      host.notify({ kind: 'success', title: 'Proofread Draft', message: TEXT.applied })
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
-      setMessage(`Übernahme fehlgeschlagen: ${detail}`)
-      host.notify({ kind: 'error', title: 'Grammarly', message: detail })
+      setMessage(TEXT.applyFailed(detail))
+      host.notify({ kind: 'error', title: 'Proofread Draft', message: detail })
     }
   }
 
@@ -276,8 +278,8 @@ function ProofreadAction({ request }) {
 }
 
 export default {
-  id: 'grammarly',
-  name: 'Grammarly',
+  id: 'proofread-draft',
+  name: 'Proofread Draft',
   defaultEnabled: true,
   register(ctx) {
     ctx.register({

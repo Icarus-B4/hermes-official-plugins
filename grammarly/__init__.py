@@ -1,10 +1,10 @@
-"""Grammarly proofreading plugin backend."""
+"""Proofread Draft plugin backend."""
 
 from __future__ import annotations
 
 from typing import Any
 
-TASK_NAME = "grammarly_proofread"
+TASK_NAME = "proofread_draft"
 MAX_INPUT_CHARS = 6000
 
 _get_llm: Any = None
@@ -30,7 +30,7 @@ def register(ctx: Any) -> None:
     _get_llm = lambda: ctx.llm
     ctx.register_auxiliary_task(
         TASK_NAME,
-        display_name="Grammarly proofreading",
+        display_name="Proofread Draft",
         description="Proofread spelling, grammar, and punctuation in a draft.",
     )
 
@@ -41,15 +41,15 @@ def proofread_text(text: str) -> str:
     if len(text) > MAX_INPUT_CHARS:
         raise ValueError(f"Draft exceeds the {MAX_INPUT_CHARS}-character limit.")
     if _get_llm is None:
-        raise RuntimeError("The Grammarly plugin backend is not initialized.")
+        raise RuntimeError("The Proofread Draft plugin backend is not initialized.")
 
     result = _get_llm().complete_structured(
         instructions=_INSTRUCTIONS,
         input=[{"type": "text", "text": text}],
         json_schema=_RESULT_SCHEMA,
-        schema_name="grammarly.proofread",
+        schema_name="proofread_draft.result",
         task=TASK_NAME,
-        purpose="grammarly.proofread",
+        purpose="proofread_draft",
         temperature=0.0,
         max_tokens=min(8192, max(1024, len(text) * 2)),
         timeout=90.0,

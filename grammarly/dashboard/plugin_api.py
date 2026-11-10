@@ -31,7 +31,7 @@ def _plugin_core() -> Any:
             return module
     raise HTTPException(
         status_code=503,
-        detail="The Grammarly plugin backend is not initialized.",
+        detail="The Proofread Draft plugin backend is not initialized.",
     )
 
 
