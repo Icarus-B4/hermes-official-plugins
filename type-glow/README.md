@@ -1,6 +1,6 @@
-<p align="center"><img src="../assets/type-glow.webp" alt="Type-Glow: Hermes Desktop plugin" width="100%"></p>
-
 # Type Glow
+
+<p align="center"><img src="../assets/type-glow.webp" alt="Type-Glow: Hermes Desktop plugin" width="100%"></p>
 
 Desktop plugin for Hermes. Renames the empty-chat headline, adds a **GlowFX** that
 follows the accent colour, and a **typewriter** effect. **Clicking the headline**
