@@ -1,0 +1,9 @@
+name: type-glow
+version: 1.0.1
+description: "Rename the empty-chat headline, add a GlowFX that follows the accent colour, and a typewriter effect. Click the headline to open the settings dialog."
+author: "Icarus-B4"
+requires_hermes: ">=0.23.3"
+provides_hooks: []
+provides_tools: []
+provides_middleware: []
+requires_env: []
