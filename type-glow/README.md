@@ -1,3 +1,5 @@
+<p align="center"><img src="../assets/type-glow.webp" alt="Type-Glow: Hermes Desktop plugin" width="100%"></p>
+
 # Type Glow
 
 Desktop plugin for Hermes. Renames the empty-chat headline, adds a **GlowFX** that
