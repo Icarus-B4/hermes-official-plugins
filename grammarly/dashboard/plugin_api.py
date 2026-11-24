@@ -1,10 +1,8 @@
 """Authenticated backend endpoint used by the desktop composer plugin."""
 
-from __future__ import annotations
-
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -15,6 +13,8 @@ PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 
 class ProofreadRequest(BaseModel):
     text: str
+    # Optional target language for the corrected draft (None = keep the draft's language).
+    language: Optional[str] = None
 
 
 def _plugin_core() -> Any:
@@ -38,7 +38,7 @@ def _plugin_core() -> Any:
 @router.post("/proofread")
 def proofread(payload: ProofreadRequest) -> dict[str, str]:
     try:
-        corrected = _plugin_core().proofread_text(payload.text)
+        corrected = _plugin_core().proofread_text(payload.text, payload.language)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except HTTPException:

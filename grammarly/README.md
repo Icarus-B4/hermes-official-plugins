@@ -17,7 +17,9 @@ The plugin needs a Hermes version that supports desktop plugins, composer contri
 1. Restart Hermes Desktop or use **Capabilities → Plugins → Rescan** so it picks up the latest desktop plugin file.
 2. Enter a deliberately misspelled sentence such as `Wie zeste ich dsa ampesten?`.
 3. Click the Proofread Draft icon. A centered correction dialog should open after the model responds; it uses the browser's top layer so the composer cannot clip it.
-4. Choose **Show original** to compare. **Discard** or `Esc` leaves the draft unchanged; **Apply** replaces the draft without sending it. The interface switches to German when the system language is German.
+4. Choose **Show original** to compare. The language row above the preview selects the language of the inserted text: **Original** keeps the corrected draft as returned, while **Deutsch** and **English** render it in that language (the preview updates after a short delay). **Discard** or `Esc` leaves the draft unchanged; **Apply** replaces the draft without sending it. The interface switches to German when the system language is German.
+
+Picking a language adds one model call: proofreading happens first, then the correction is rendered into the selected language before it reaches the composer.
 
 ## Privacy
 

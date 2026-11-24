@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { jsx, jsxs } from 'react/jsx-runtime'
 
 const MAX_INPUT_CHARS = 6000
+const TRANSLATE_DEBOUNCE_MS = 450
 const TEXT = navigator.language?.toLowerCase().startsWith('de')
   ? {
       emptyDraft: 'Das Eingabefeld ist leer.',
@@ -30,7 +31,11 @@ const TEXT = navigator.language?.toLowerCase().startsWith('de')
       review: 'Vorschlag prüfen — der Entwurf wird nicht automatisch geändert.',
       showOriginal: 'Original anzeigen',
       discard: 'Verwerfen',
-      apply: 'Übernehmen'
+      apply: 'Übernehmen',
+      languageLabel: 'Sprache des korrigierten Textes',
+      originalLanguage: 'Original',
+      translating: 'Übersetze …',
+      translateFailed: detail => `Übersetzung fehlgeschlagen: ${detail}`
     }
   : {
       emptyDraft: 'The draft is empty.',
@@ -58,13 +63,26 @@ const TEXT = navigator.language?.toLowerCase().startsWith('de')
       review: 'Review the suggestion — your draft will not change automatically.',
       showOriginal: 'Show original',
       discard: 'Discard',
-      apply: 'Apply'
+      apply: 'Apply',
+      languageLabel: 'Language of the corrected text',
+      originalLanguage: 'Original',
+      translating: 'Translating …',
+      translateFailed: detail => `Translation failed: ${detail}`
     }
+
+const LANGUAGE_OPTIONS = [
+  { id: 'original' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'en', label: 'English' }
+]
 
 function ProofreadAction({ request }) {
   const [busy, setBusy] = useState(false)
   const [proposal, setProposal] = useState(null)
   const [message, setMessage] = useState('')
+  const [language, setLanguage] = useState('original')
+  const [preview, setPreview] = useState(null)
+  const [translating, setTranslating] = useState(false)
   const proposalDialog = useRef(null)
 
   useEffect(() => {
@@ -77,9 +95,60 @@ function ProofreadAction({ request }) {
     }
   }, [proposal])
 
+  useEffect(() => {
+    let cancelled = false
+
+    if (!proposal) {
+      setPreview(null)
+      setTranslating(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (language === 'original') {
+      setPreview(proposal.corrected)
+      setTranslating(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setTranslating(true)
+    const timer = setTimeout(async () => {
+      try {
+        const result = await request('/proofread', {
+          method: 'POST',
+          body: { text: proposal.corrected, language },
+          timeoutMs: 120_000
+        })
+        if (cancelled) return
+        if (typeof result?.text !== 'string' || !result.text.trim()) {
+          throw new Error(TEXT.missingCorrection)
+        }
+        setPreview(result.text)
+        setMessage('')
+      } catch (error) {
+        if (cancelled) return
+        const detail = error instanceof Error ? error.message : String(error)
+        setMessage(TEXT.translateFailed(detail))
+        host.notify({ kind: 'error', title: 'Proofread Draft', message: detail })
+      } finally {
+        if (!cancelled) setTranslating(false)
+      }
+    }, TRANSLATE_DEBOUNCE_MS)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [proposal, language])
+
   async function checkDraft() {
     setMessage('')
     setProposal(null)
+    setLanguage('original')
+    setPreview(null)
     setBusy(true)
 
     try {
@@ -134,6 +203,7 @@ function ProofreadAction({ request }) {
   async function applyProposal() {
     if (!proposal) return
 
+    const shown = preview ?? proposal.corrected
     try {
       const currentSessionId = host.state.focusedSessionId.get() || 'new'
       if (currentSessionId !== proposal.sessionId) {
@@ -150,7 +220,7 @@ function ProofreadAction({ request }) {
         return
       }
 
-      const applied = await host.composer.setDraft(proposal.sessionId, proposal.corrected)
+      const applied = await host.composer.setDraft(proposal.sessionId, shown)
       if (!applied) {
         setMessage(TEXT.unavailableDraft)
         host.notify({ kind: 'error', title: 'Proofread Draft', message: TEXT.unavailableDraftNotice })
@@ -226,11 +296,40 @@ function ProofreadAction({ request }) {
                   className: 'text-xs font-medium',
                   children: TEXT.review
                 }),
+                jsxs('div', {
+                  className: 'flex flex-wrap items-center gap-1',
+                  children: [
+                    jsx('span', {
+                      className: 'text-xs text-muted-foreground',
+                      children: TEXT.languageLabel
+                    }),
+                    ...LANGUAGE_OPTIONS.map(option =>
+                      jsx('button', {
+                        type: 'button',
+                        key: option.id,
+                        'aria-pressed': language === option.id,
+                        className:
+                          language === option.id
+                            ? 'rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground'
+                            : 'rounded-md border border-border px-2 py-1 text-xs text-(--ui-text-secondary) hover:bg-muted',
+                        onClick: () => setLanguage(option.id),
+                        children: option.label ?? TEXT.originalLanguage
+                      })
+                    )
+                  ]
+                }),
                 jsx('pre', {
                   className:
                     'max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-muted/50 p-2 text-xs font-sans',
-                  children: proposal.corrected
+                  children: preview ?? proposal.corrected
                 }),
+                translating &&
+                  jsx('div', {
+                    className: 'text-xs text-muted-foreground',
+                    role: 'status',
+                    'aria-live': 'polite',
+                    children: TEXT.translating
+                  }),
                 jsxs('details', {
                   className: 'text-xs text-muted-foreground',
                   children: [
@@ -265,7 +364,7 @@ function ProofreadAction({ request }) {
               ]
             })
           })
-        }),
+      }),
       message &&
         jsx('span', {
           className: 'max-w-56 text-xs text-muted-foreground',

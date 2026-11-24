@@ -1,5 +1,5 @@
 name: proofread-draft
-version: 0.1.4
+version: 0.1.5
 requires_hermes: ">=0.21.6"
 description: "Proofread the current Hermes Desktop draft with a preview before corrections are applied."
 author: "Icarus-B4"

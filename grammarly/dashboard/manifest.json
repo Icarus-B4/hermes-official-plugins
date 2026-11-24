@@ -2,6 +2,6 @@
   "name": "proofread-draft",
   "label": "Proofread Draft",
   "description": "Authenticated proofreading endpoint for the Hermes Desktop composer plugin.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "api": "plugin_api.py"
 }
